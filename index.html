@@ -639,6 +639,20 @@ const ScreenHome = ({
   go
 }) => {
   const [now, setNow] = React.useState(new Date());
+  // 엔진 첫 번째 추천 (컴포넌트 마운트 시 1회 계산)
+  const [topGame, setTopGame] = React.useState(
+    typeof lottoEngine !== 'undefined'
+      ? lottoEngine.recommend()[0]
+      : { name: 'AI 종합', subtitle: 'AI Hot · Cold · Pattern', nums: [7,12,23,31,38,44], conf: 87, tags: [] }
+  );
+  // 최신 회차 결과 (엔진 시드 데이터 우선)
+  const latestDraw = typeof lottoEngine !== 'undefined' && lottoEngine.draws.length > 0
+    ? lottoEngine.draws[0]
+    : { round: 1221, date: '2026-04-25', nums: [6,13,18,28,30,36], bonus: 9, prize: 1830800000 };
+  const latestPrize = latestDraw.prize >= 100000000
+    ? (latestDraw.prize / 100000000).toFixed(1) + '억'
+    : String(latestDraw.prize);
+  const latestDate = String(latestDraw.date || '').slice(5).replace('-', '/');
   React.useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(t);
@@ -818,13 +832,13 @@ const ScreenHome = ({
       color: W5.gold,
       fontWeight: 700
     }
-  }, "\uC2E0\uB8B0\uB3C4 87%")), /*#__PURE__*/React.createElement("div", {
+  }, "\uC2E0\uB8B0\uB3C4 " + topGame.conf + "%")), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       justifyContent: "space-between",
       gap: 6
     }
-  }, [7, 12, 23, 31, 38, 44].map(n => /*#__PURE__*/React.createElement(LottoBall, {
+  }, topGame.nums.map(n => /*#__PURE__*/React.createElement(LottoBall, {
     key: n,
     n: n,
     size: 42
@@ -863,19 +877,19 @@ const ScreenHome = ({
       fontSize: 13,
       fontWeight: 600
     }
-  }, "\uC81C 1221\uD68C (4/25)"), /*#__PURE__*/React.createElement("div", {
+  }, "\uC81C " + latestDraw.round + "\uD68C (" + latestDate + ")"), /*#__PURE__*/React.createElement("div", {
     style: {
       color: W5.gold,
       fontSize: 13,
       fontWeight: 800
     }
-  }, "33.2\uC5B5")), /*#__PURE__*/React.createElement("div", {
+  }, latestPrize)), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       gap: 6,
       alignItems: "center"
     }
-  }, [3, 14, 19, 25, 32, 41].map(n => /*#__PURE__*/React.createElement(LottoBall, {
+  }, latestDraw.nums.map(n => /*#__PURE__*/React.createElement(LottoBall, {
     key: n,
     n: n,
     size: 32
@@ -886,7 +900,7 @@ const ScreenHome = ({
       textAlign: "center"
     }
   }, "+"), /*#__PURE__*/React.createElement(LottoBall, {
-    n: 7,
+    n: latestDraw.bonus,
     size: 32
   })), /*#__PURE__*/React.createElement("div", {
     style: {
