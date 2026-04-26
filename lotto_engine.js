@@ -1,5 +1,5 @@
 /**
- * lotto_engine.js — Week 5ive 로또 번호 추천 엔진 v2.0
+ * lotto_engine.js — Week 5ive 로또 번호 추천 엔진 v2.1
  * =====================================================
  * 학습: 역대 추첨 데이터를 분석하여 번호별 통계 지표를 계산
  * 추천: 5가지 독립 전략으로 매주 새로운 번호 5세트 생성
@@ -16,8 +16,7 @@
  *   - getAcValue()        AC값: 고유 차이값 수 - (n-1), 번호 다양성 지표
  *   - getEnsembleScores() 듀얼 앙상블: freqA×0.35 + freqB×0.25 + gap×0.25 + pair×0.15
  *
- * 데이터: 1~1221회 (1,219회차 — 역대 공식 데이터 전체 + signalfire85.tistory.com + 직접수집)
- *   ※ 1209회 누락
+ * 데이터: 1~1221회 (1,220회차 — 역대 공식 데이터 전체 + signalfire85.tistory.com + 직접수집)
  */
 
 (function (global) {
@@ -1288,13 +1287,17 @@
     getSumStats() {
       if (this._cache.sumStats) return this._cache.sumStats;
       const sums = this.draws.map(d => d.nums.reduce((a, b) => a + b, 0));
-      const mean = sums.reduce((a, b) => a + b, 0) / sums.length;
+      // 전체 평균 (v2.1: 슬라이딩 가중 평균 — 전체 70% + 최근 30회 30%)
+      const meanAll  = sums.reduce((a, b) => a + b, 0) / sums.length;
+      const recent30 = sums.slice(0, Math.min(30, sums.length));
+      const meanR30  = recent30.reduce((a, b) => a + b, 0) / recent30.length;
+      const mean     = meanAll * 0.7 + meanR30 * 0.3;  // 슬라이딩 가중 평균
       const variance = sums.reduce((a, b) => a + (b - mean) * (b - mean), 0) / sums.length;
       const std = Math.sqrt(variance);
       const sorted = sums.slice().sort((a, b) => a - b);
       const p10 = sorted[Math.floor(sorted.length * 0.1)] || 100;
       const p90 = sorted[Math.floor(sorted.length * 0.9)] || 175;
-      return (this._cache.sumStats = { mean, std, p10, p90 });
+      return (this._cache.sumStats = { mean, std, p10, p90, meanAll, meanR30 });
     }
 
     // 핫페어 분석 — windowN 회차 내 함께 출현한 번호 쌍 빈도 계산
@@ -1402,7 +1405,8 @@
       const odd   = nums.filter(n => n % 2 === 1).length;
       const zones = {};
       nums.forEach(n => { zones[Math.ceil(n / 9)] = 1; });
-      return sum >= 80 && sum <= 200 && odd >= 1 && odd <= 5 && Object.keys(zones).length >= 3;
+      // v2.1: 합계 범위 90~190으로 강화 (극단값 필터)
+      return sum >= 90 && sum <= 190 && odd >= 1 && odd <= 5 && Object.keys(zones).length >= 3;
     }
 
     _fallbackBalanced() {
@@ -1432,8 +1436,13 @@
       else if (sumDev < 1.0) score += 10;
       else if (sumDev < 1.5) score += 5;
 
-      if (odd >= 2 && odd <= 4)       score += 8;
-      else if (odd === 1 || odd === 5) score += 3;
+      // v2.1: 홀짝 동적 가중치 — 최근 50회 실적(홀4짝2: 32%) 반영
+      if      (odd === 4) score += 12;  // 홀4짝2 최우선 (+12)
+      else if (odd === 3) score += 8;   // 홀3짝3
+      else if (odd === 2) score += 6;   // 홀2짝4
+      else if (odd === 5) score += 4;   // 홀5짝1
+      else if (odd === 1) score += 2;   // 홀1짝5
+      // odd===0 또는 6은 보너스 없음
 
       if (zoneCount >= 4) score += 8;
       else if (zoneCount === 3) score += 4;
@@ -1503,33 +1512,40 @@
     }
 
     genEV() {
-      // v2.0: 기대수익 극대화 전략
+      // v2.1: 기대수익 극대화 전략
       // 역대 전체 빈도 낮은 번호 → 당첨 시 공유자 적어 더 높은 상금 기대
-      // 비선호 번호 = 전체 빈도 하위 40% + 비라운드 번호 (5의 배수 제외) + 고구간(37-45) 우선
+      // 개선: 합계 120~165 범위 제약 + Hot 번호 최소 1개 강제 포함
       const freqAll  = this.getFrequency(this.draws.length);
       const gap      = this.getGaps();
       const ensemble = this.getEnsembleScores(
         Math.min(5, this.draws.length),
         Math.min(2, this.draws.length)
       );
-      // 역대 빈도 기준 인기도 역산 (낮을수록 EV 유리)
+      const hotTop10 = this.getHotNumbers(10); // 최근 10회 Hot 번호 TOP10
       const maxF = Math.max.apply(null, freqAll.slice(1).concat([1]));
       const weights = new Array(this.N + 1).fill(0);
       for (let n = 1; n <= this.N; n++) {
-        const unpopular = 1 - (freqAll[n] / maxF);    // 비인기 점수 (높을수록 EV 유리)
-        const highZone  = n >= 37 ? 0.2 : 0;          // 고구간 보너스
-        const roundPen  = (n % 5 === 0) ? -0.15 : 0;  // 라운드 번호 페널티
-        const gapBonus  = Math.min(gap[n] / (this.expectedInterval * 2), 0.3); // 갭 보너스 (상한 30%)
-        const ensW      = ensemble[n] * 0.25;          // 앙상블 신호 25% 가미
+        const unpopular = 1 - (freqAll[n] / maxF);
+        const highZone  = n >= 37 ? 0.15 : 0;
+        const roundPen  = (n % 5 === 0) ? -0.10 : 0;  // v2.1: 페널티 완화 -0.15 → -0.10
+        const gapBonus  = Math.min(gap[n] / (this.expectedInterval * 2), 0.3);
+        const ensW      = ensemble[n] * 0.25;
         weights[n] = unpopular * 0.55 + gapBonus + highZone + roundPen + ensW;
       }
-      const nums    = this._pickWeighted(weights);
+      // v2.1: 합계 120~165 + Hot 번호 최소 1개 포함 조건
+      let nums = null;
+      for (let t = 0; t < 200; t++) {
+        const candidate = this._pickWeighted(weights.slice());
+        const sum = candidate.reduce((a, b) => a + b, 0);
+        const hasHot = candidate.some(n => hotTop10.indexOf(n) !== -1);
+        if (sum >= 115 && sum <= 165 && hasHot) { nums = candidate; break; }
+      }
+      if (!nums) nums = this._pickWeighted(weights); // 폴백
       const sum     = nums.reduce((a, b) => a + b, 0);
       const conf    = this._calcConfidence(nums, 'ev');
       const ac      = this.getAcValue(nums);
       const evTop   = freqAll.map((f, i) => ({ n: i, f })).filter(x => x.n >= 1)
         .sort((a, b) => a.f - b.f).slice(0, 5).map(x => x.n);
-      const included = nums.filter(n => evTop.indexOf(n) !== -1).length;
       return {
         name: 'EV 극대화', subtitle: '기대수익 · 비인기 번호 전략', nums, conf,
         tags: ['고EV', '비인기 번호', 'AC ' + ac],
@@ -1579,7 +1595,8 @@
       const stats   = this.getSumStats();
       const freq    = this.getFrequency(Math.min(20, this.draws.length));
       const weights = freq.map((f, i) => (i === 0 ? 0 : Math.max(f, 0.5)));
-      for (let attempt = 0; attempt < 500; attempt++) {
+      // v2.1: 1차 시도 — 홀4짝2 우선 (최근 50회 32%)
+      for (let attempt = 0; attempt < 600; attempt++) {
         const candidate = this._pickWeighted(weights.slice(), 6, 5);
         if (!candidate || candidate.length !== 6) continue;
         const sum = candidate.reduce((a, b) => a + b, 0);
@@ -1589,24 +1606,27 @@
           if (candidate[i + 1] - candidate[i] === 1) consCount++;
         }
         const acVal   = this.getAcValue(candidate);
-        const inRange = Math.abs(sum - stats.mean) <= stats.std * 1.2;
-        if (inRange && odd >= 2 && odd <= 4 && consCount >= 1 && consCount <= 2 && acVal >= 6) {
+        // v2.1: 슬라이딩 평균 기준, 범위 ±0.8σ로 축소, 홀4짝2 우선
+        const inRange = Math.abs(sum - stats.mean) <= stats.std * (odd === 4 ? 1.0 : 0.8);
+        const oddOk   = attempt < 400 ? odd === 4 : (odd >= 2 && odd <= 4); // 400회 이후 조건 완화
+        if (inRange && oddOk && consCount >= 0 && consCount <= 2 && acVal >= 6) {
           const conf = this._calcConfidence(candidate, 'pattern');
           return {
-            name: '패턴 분석', subtitle: '합계·홀짝·연속번호·AC 최적화', nums: candidate, conf,
+            name: '패턴 분석', subtitle: '합계·홀짝·AC 최적화', nums: candidate, conf,
             tags: ['합 ' + sum, '홀' + odd + '짝' + (6-odd), 'AC ' + acVal],
-            reasoning: '합계 ' + sum + ' (평균 ' + Math.round(stats.mean) + '±' + Math.round(stats.std) + '), 홀' + odd + '짝' + (6-odd) + ', 연속 ' + consCount + '쌍, AC=' + acVal,
+            reasoning: '합계 ' + sum + ' (슬라이딩 평균 ' + Math.round(stats.mean) + '±' + Math.round(stats.std) + '), 홀' + odd + '짝' + (6-odd) + ', 연속 ' + consCount + '쌍, AC=' + acVal,
           };
         }
       }
       const nums = this._pickWeighted(weights);
       const sum  = nums.reduce((a, b) => a + b, 0);
       const odd  = nums.filter(n => n % 2 === 1).length;
+      const acVal = this.getAcValue(nums);
       return {
         name: '패턴 분석', subtitle: '합계·홀짝·연속번호 최적화', nums,
         conf: this._calcConfidence(nums, 'pattern'),
-        tags: ['합 ' + sum, '홀' + odd + '짝' + (6-odd)],
-        reasoning: '합계 ' + sum + ', 홀' + odd + '짝' + (6-odd),
+        tags: ['합 ' + sum, '홀' + odd + '짝' + (6-odd), 'AC ' + acVal],
+        reasoning: '합계 ' + sum + ', 홀' + odd + '짝' + (6-odd) + ', AC=' + acVal,
       };
     }
 
@@ -1614,13 +1634,31 @@
 
     recommend() {
       this._cache = {};
-      return [
-        this.genComposite(),   // AI 종합 (듀얼 앙상블)
-        this.genHot(),         // Hot 패턴
-        this.genBalanced(),    // 균형형
-        this.genPattern(),     // 패턴 분석 (AC 조건 포함)
-        this.genEV(),          // EV 극대화 (기대수익)
+      const generators = [
+        () => this.genComposite(),
+        () => this.genHot(),
+        () => this.genBalanced(),
+        () => this.genPattern(),
+        () => this.genEV(),
       ];
+
+      // v2.1: 커버리지 다양화 패스
+      // 이미 선택된 번호와 3개 이상 겹치면 최대 3회 재생성 → 5세트 총 커버리지 최대화
+      const results = [];
+      const usedNums = new Set();
+
+      generators.forEach(function(gen) {
+        let pick = gen();
+        for (let retry = 0; retry < 3; retry++) {
+          const overlap = pick.nums.filter(function(n) { return usedNums.has(n); }).length;
+          if (overlap < 3) break; // 겹침 2개 이하면 OK
+          pick = gen();           // 재생성
+        }
+        pick.nums.forEach(function(n) { usedNums.add(n); });
+        results.push(pick);
+      });
+
+      return results;
     }
 
     getHotNumbers(topN) {
