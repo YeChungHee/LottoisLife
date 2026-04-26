@@ -1,0 +1,38 @@
+{
+  "updatedAt": "2026-04-26T13:13:38.302272",
+  "latest": {
+    "returnValue": "success",
+    "drwNo": 1221,
+    "drwNoDate": "2026-04-25",
+    "drwtNo1": 6,
+    "drwtNo2": 13,
+    "drwtNo3": 18,
+    "drwtNo4": 28,
+    "drwtNo5": 30,
+    "drwtNo6": 36,
+    "bnusNo": 9,
+    "firstWinamnt": 1830800000,
+    "firstPrzwnerCo": 16,
+    "totSellamnt": 0,
+    "firstAccumamnt": 0
+  },
+  "history": [
+    {
+      "returnValue": "success",
+      "drwNo": 1221,
+      "drwNoDate": "2026-04-25",
+      "drwtNo1": 6,
+      "drwtNo2": 13,
+      "drwtNo3": 18,
+      "drwtNo4": 28,
+      "drwtNo5": 30,
+      "drwtNo6": 36,
+      "bnusNo": 9,
+      "firstWinamnt": 1830800000,
+      "firstPrzwnerCo": 16,
+      "totSellamnt": 0,
+      "firstAccumamnt": 0
+    }
+  ],
+  "_note": "API 직접 조회 불가로 웹 검색을 통해 수집된 데이터 (2026-04-26)"
+}

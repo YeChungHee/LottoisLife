@@ -22,6 +22,7 @@
   <script crossorigin src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
   <script crossorigin src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
   
+  <script src="lotto_engine.js"></script>
   <script>
 /* ============================================================================
    Week 5ive — Google Sheets API 레이어
@@ -717,7 +718,7 @@ const ScreenHome = ({
       background: W5.gold,
       boxShadow: `0 0 8px ${W5.gold}`
     }
-  }), "\uC81C 1198\uD68C \xB7 \uD1A0\uC694\uC77C \uCD94\uCCA8 D-2"), /*#__PURE__*/React.createElement("div", {
+  }), "\uC81C 1222\uD68C \xB7 \uD1A0\uC694\uC77C \uCD94\uCCA8 D-6"), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 14,
       fontSize: 30,
@@ -862,7 +863,7 @@ const ScreenHome = ({
       fontSize: 13,
       fontWeight: 600
     }
-  }, "\uC81C 1197\uD68C (11/8)"), /*#__PURE__*/React.createElement("div", {
+  }, "\uC81C 1221\uD68C (4/25)"), /*#__PURE__*/React.createElement("div", {
     style: {
       color: W5.gold,
       fontSize: 13,
@@ -974,32 +975,7 @@ const ScreenHome = ({
       flexDirection: "column",
       gap: 8
     }
-  }, [{
-    i: 1,
-    name: "AI 종합",
-    nums: [7, 12, 23, 31, 38, 44],
-    conf: 87
-  }, {
-    i: 2,
-    name: "Hot 패턴",
-    nums: [3, 9, 18, 27, 35, 43],
-    conf: 79
-  }, {
-    i: 3,
-    name: "Cold 반등",
-    nums: [1, 14, 22, 33, 39, 45],
-    conf: 72
-  }, {
-    i: 4,
-    name: "균형형",
-    nums: [5, 11, 19, 28, 36, 42],
-    conf: 81
-  }, {
-    i: 5,
-    name: "행운수",
-    nums: [8, 13, 25, 29, 37, 41],
-    conf: 68
-  }].map(g => /*#__PURE__*/React.createElement("button", {
+  }, (typeof lottoEngine !== 'undefined' ? lottoEngine.recommend() : [{name:"AI 종합",nums:[7,12,23,31,38,44],conf:87},{name:"Hot 패턴",nums:[3,9,18,27,35,43],conf:79},{name:"Cold 반등",nums:[1,14,22,33,39,45],conf:72},{name:"균형형",nums:[5,11,19,28,36,42],conf:81},{name:"패턴 분석",nums:[8,13,25,29,37,41],conf:68}]).map((g, idx) => ({...g, i: idx+1})).map(g => /*#__PURE__*/React.createElement("button", {
     key: g.i,
     onClick: () => go("picks"),
     style: {
@@ -1066,42 +1042,28 @@ const ScreenPicks = ({
   const [active, setActive] = React.useState(0);
   const [drawn, setDrawn] = React.useState(true);
   const [saved, setSaved] = React.useState({});
-  const games = [{
-    name: "AI 종합 추천",
-    subtitle: "Hot · Cold · Pattern 융합",
-    nums: [7, 12, 23, 31, 38, 44],
-    conf: 87,
-    tags: ["AI 추천", "균형 분포", "최근 패턴"],
-    reasoning: "최근 12회 빈도 + 미당첨 이월수 + 합계 패턴 분석"
-  }, {
-    name: "Hot 패턴",
-    subtitle: "최근 출현 빈도 기반",
-    nums: [3, 9, 18, 27, 35, 43],
-    conf: 79,
-    tags: ["Hot 6", "고빈도"],
-    reasoning: "최근 8회차 누적 출현률 상위"
-  }, {
-    name: "Cold 반등",
-    subtitle: "오랜 미출현 번호의 회귀",
-    nums: [1, 14, 22, 33, 39, 45],
-    conf: 72,
-    tags: ["Cold 반등", "이월수"],
-    reasoning: "20회 이상 미출현 번호 + 분포 보정"
-  }, {
-    name: "균형형",
-    subtitle: "구간별 1개씩 안전 분포",
-    nums: [5, 11, 19, 28, 36, 42],
-    conf: 81,
-    tags: ["구간 균형", "합 142"],
-    reasoning: "1-9, 10-18, 19-27, 28-36, 37-45 균등"
-  }, {
-    name: "행운수",
-    subtitle: "사용자 선호 + 패턴 보정",
-    nums: [8, 13, 25, 29, 37, 41],
-    conf: 68,
-    tags: ["선호도", "조합형"],
-    reasoning: "회원 선호 번호 + 패턴 매칭"
-  }];
+  // 엔진 초기화: API → results.json → 내장 시드 순으로 데이터 로드
+  const [games, setGames] = React.useState(
+    typeof lottoEngine !== 'undefined' ? lottoEngine.recommend() : []
+  );
+  React.useEffect(() => {
+    if (typeof lottoEngine === 'undefined') return;
+    // Google Sheets API 우선 시도
+    W5Api.getDraws().then(res => {
+      if (res.ok && res.data && res.data.length > 0) {
+        lottoEngine.updateFromApi(res.data);
+      }
+    }).catch(() => {}).finally(() => {
+      // results.json fallback
+      fetch('results.json').then(r => r.json()).then(data => {
+        if (data && data.latest) {
+          lottoEngine.updateFromResults(data);
+        }
+      }).catch(() => {}).finally(() => {
+        setGames(lottoEngine.recommend());
+      });
+    });
+  }, []);
   const g = games[active];
   return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -1115,7 +1077,7 @@ const ScreenPicks = ({
       color: W5.gold,
       textTransform: "uppercase"
     }
-  }, "\uC81C 1198\uD68C \xB7 5\uBC88\uC758 \uB3C4\uC804"), /*#__PURE__*/React.createElement("div", {
+  }, "\uC81C 1222\uD68C \xB7 5\uBC88\uC758 \uB3C4\uC804"), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 4,
       fontSize: 28,
@@ -1287,7 +1249,7 @@ const ScreenPicks = ({
         return;
       }
       if (saved[active]) return;
-      await W5Api.saveNumbers(ctx.session.userID, 1198, g.name, g.nums);
+      await W5Api.saveNumbers(ctx.session.userID, 1222, g.name, g.nums);
       setSaved(s => ({
         ...s,
         [active]: true
@@ -1412,41 +1374,54 @@ const ScreenPicks = ({
 const ScreenStats = ({
   go
 }) => {
-  const MOCK_DRAWS = [{
-    round: 1197,
-    date: "11/8",
-    nums: [3, 14, 19, 25, 32, 41],
-    bonus: 7,
-    prize: "33.2억"
-  }, {
-    round: 1196,
-    date: "11/1",
-    nums: [2, 9, 17, 24, 31, 40],
-    bonus: 12,
-    prize: "28.4억"
-  }, {
-    round: 1195,
-    date: "10/25",
-    nums: [5, 11, 22, 29, 36, 43],
-    bonus: 18,
-    prize: "31.7억"
-  }, {
-    round: 1194,
-    date: "10/18",
-    nums: [1, 8, 16, 27, 33, 45],
-    bonus: 22,
-    prize: "26.9억"
-  }, {
-    round: 1193,
-    date: "10/11",
-    nums: [4, 13, 20, 26, 38, 44],
+  // MOCK_DRAWS: 실제 당첨 번호 (엔진 내장 시드와 동기화)
+  const MOCK_DRAWS = typeof lottoEngine !== 'undefined'
+    ? lottoEngine.draws.slice(0, 5).map(d => ({
+        round: d.round,
+        date: String(d.date || '').slice(5).replace('-', '/'),
+        nums: d.nums,
+        bonus: d.bonus,
+        prize: d.prize >= 100000000 ? (d.prize / 100000000).toFixed(1) + '억' : String(d.prize)
+      }))
+    : [{
+    round: 1221,
+    date: "4/25",
+    nums: [6, 13, 18, 28, 30, 36],
     bonus: 9,
-    prize: "29.5억"
+    prize: "18.3억"
+  }, {
+    round: 1220,
+    date: "4/18",
+    nums: [2, 22, 25, 28, 34, 43],
+    bonus: 16,
+    prize: "21.1억"
+  }, {
+    round: 1219,
+    date: "4/11",
+    nums: [1, 2, 15, 28, 39, 45],
+    bonus: 31,
+    prize: "25.1억"
+  }, {
+    round: 1218,
+    date: "4/4",
+    nums: [3, 28, 31, 32, 42, 45],
+    bonus: 25,
+    prize: "17.1억"
+  }, {
+    round: 1217,
+    date: "3/28",
+    nums: [8, 10, 15, 20, 29, 31],
+    bonus: 41,
+    prize: "21.8억"
   }];
   const [draws, setDraws] = React.useState(MOCK_DRAWS);
   React.useEffect(() => {
     W5Api.getDraws().then(res => {
       if (res.ok && res.data && res.data.length > 0) {
+        // 엔진에 실제 데이터 반영
+        if (typeof lottoEngine !== 'undefined') {
+          lottoEngine.updateFromApi(res.data);
+        }
         const mapped = res.data.map(d => ({
           round: d.round,
           date: String(d.drawDate || '').slice(5).replace('-', '/'),
@@ -1459,9 +1434,9 @@ const ScreenStats = ({
     }).catch(() => {});
   }, []);
 
-  // Hot/cold frequency (mock)
-  const hot = [34, 27, 18, 13, 7];
-  const cold = [22, 9, 41, 30, 16];
+  // Hot/Cold: 엔진 실시간 계산
+  const hot  = typeof lottoEngine !== 'undefined' ? lottoEngine.getHotNumbers(5)  : [34, 27, 18, 13, 7];
+  const cold = typeof lottoEngine !== 'undefined' ? lottoEngine.getColdNumbers(5) : [22, 9, 41, 30, 16];
   return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
       padding: "10px 18px 8px"
@@ -1488,7 +1463,7 @@ const ScreenStats = ({
       color: W5.text3,
       marginTop: 4
     }
-  }, "1198\uD68C \uCD94\uCC9C\uC758 \uADFC\uAC70 \uB370\uC774\uD130")), /*#__PURE__*/React.createElement("div", {
+  }, "1222\uD68C \uCD94\uCC9C\uC758 \uADFC\uAC70 \uB370\uC774\uD130")), /*#__PURE__*/React.createElement("div", {
     style: {
       margin: "12px 14px"
     }
@@ -1510,7 +1485,7 @@ const ScreenStats = ({
       fontSize: 11,
       color: W5.text3
     }
-  }, "1186-1197")), /*#__PURE__*/React.createElement(FreqBar, null))), /*#__PURE__*/React.createElement("div", {
+  }, (typeof lottoEngine !== "undefined" ? `${lottoEngine.draws[lottoEngine.draws.length-1]?.round ?? 1209}-${lottoEngine.draws[0]?.round ?? 1221}` : "1209-1221"))), /*#__PURE__*/React.createElement(FreqBar, null))), /*#__PURE__*/React.createElement("div", {
     style: {
       margin: "0 14px",
       display: "grid",
@@ -1689,14 +1664,12 @@ const PatternRow = ({
 }, v));
 const Divider = () => null;
 const FreqBar = () => {
-  // Generate a frequency-like distribution for 1-45
-  const data = [];
-  for (let i = 1; i <= 45; i++) {
-    const r = Math.abs(Math.sin(i * 1.7 + 0.3) * 0.5 + 0.5);
-    const r2 = Math.abs(Math.cos(i * 2.3 + 1.1) * 0.5 + 0.5);
-    data.push(Math.round((r * 0.6 + r2 * 0.4) * 6 + 1));
-  }
-  const max = Math.max(...data);
+  // 실제 추첨 데이터 기반 빈도 (엔진 계산)
+  const rawData = typeof lottoEngine !== 'undefined'
+    ? lottoEngine.getFreqBarData()
+    : Array.from({ length: 45 }, (_, i) => ({ n: i+1, count: Math.round(Math.abs(Math.sin((i+1)*1.7+0.3)*0.5+0.5)*6+1), bar: 4 }));
+  const data = rawData.map(d => d.count);
+  const max = Math.max(...data, 1);
   return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
@@ -1738,7 +1711,7 @@ const FreqBar = () => {
 ============================================================================ */
 const MOCK_SAVED = [{
   id: 'N001',
-  round: 1198,
+  round: 1222,
   name: "AI 종합",
   nums: [7, 12, 23, 31, 38, 44],
   savedAt: "2일 전",
@@ -1746,7 +1719,7 @@ const MOCK_SAVED = [{
   prize: null
 }, {
   id: 'N002',
-  round: 1198,
+  round: 1222,
   name: "Hot 패턴",
   nums: [3, 9, 18, 27, 35, 43],
   savedAt: "2일 전",
@@ -1754,7 +1727,7 @@ const MOCK_SAVED = [{
   prize: null
 }, {
   id: 'N003',
-  round: 1197,
+  round: 1221,
   name: "균형형",
   nums: [5, 11, 19, 28, 36, 42],
   savedAt: "9일 전",
@@ -1762,7 +1735,7 @@ const MOCK_SAVED = [{
   prize: "—"
 }, {
   id: 'N004',
-  round: 1197,
+  round: 1221,
   name: "행운수",
   nums: [3, 14, 19, 25, 32, 41],
   savedAt: "9일 전",
@@ -1792,7 +1765,7 @@ const ScreenMy = ({
   };
   const displayName = session?.name || '게스트';
   const planLabel = session?.plan === 'pro' ? '★ 5ive Pro' : session?.plan === 'club' ? '★★ Club 5ive' : session?.plan === 'free_trial' ? '7일 무료체험' : 'Free';
-  const filtered = filter === 1 ? saved.filter(s => s.round === 1198) : filter === 2 ? saved.filter(s => s.matchCount !== null) : saved;
+  const filtered = filter === 1 ? saved.filter(s => s.round === 1222) : filter === 2 ? saved.filter(s => s.matchCount !== null) : saved;
   return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
       margin: "8px 14px 0",
@@ -2696,8 +2669,8 @@ const ScreenSupport = ({
 }) => {
   const MOCK_NOTICES = [{
     tag: "공지",
-    date: "11/8",
-    title: "1198회 추첨 결과 분석 리포트가 도착했습니다",
+    date: "4/26",
+    title: "1221회 추첨 결과 분석 리포트가 도착했습니다",
     hot: true
   }, {
     tag: "이벤트",
@@ -3305,25 +3278,25 @@ function itemsForAmount(amount) {
    회차별 1등 당첨금 (실제 동행복권 회차 기록 기반 mock)
 ---------------------------------------------------------------- */
 const ROUNDS = [{
-  round: 1198,
+  round: 1222,
   jackpot1: 2_780_000_000,
   status: "이번 주"
 }, {
-  round: 1197,
-  jackpot1: 3_320_000_000,
-  status: "11/8"
+  round: 1221,
+  jackpot1: 1_830_800_000,
+  status: "4/25"
 }, {
-  round: 1196,
+  round: 1220,
   jackpot1: 2_840_000_000,
-  status: "11/1"
+  status: "4/18"
 }, {
-  round: 1195,
+  round: 1219,
   jackpot1: 4_510_000_000,
-  status: "10/25 (이월)"
+  status: "4/11"
 }, {
-  round: 1194,
+  round: 1218,
   jackpot1: 1_960_000_000,
-  status: "10/18"
+  status: "4/4"
 }];
 
 /* ============================================================================
