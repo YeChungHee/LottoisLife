@@ -519,147 +519,28 @@ const W5Frame = ({
   scrollable = true,
   withTabBar = true,
   tab,
-  setTab,
-  statusTime = "오전 9:41"
+  setTab
 }) => /*#__PURE__*/React.createElement("div", {
   style: {
-    width: 390,
-    height: 844,
+    width: "100%",
+    height: "100vh",
     position: "relative",
     overflow: "hidden",
     background: W5.plate,
-    borderRadius: 48,
-    boxShadow: "0 24px 60px rgba(0,0,0,0.30)",
     fontFamily: "Pretendard",
     color: W5.white
   }
 }, /*#__PURE__*/React.createElement("div", {
   style: {
     position: "absolute",
-    top: 11,
-    left: "50%",
-    transform: "translateX(-50%)",
-    width: 126,
-    height: 37,
-    borderRadius: 24,
-    background: "#000",
-    zIndex: 50
-  }
-}), /*#__PURE__*/React.createElement("div", {
-  style: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 54,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: "0 36px",
-    zIndex: 40,
-    fontSize: 16,
-    fontWeight: 600,
-    color: W5.white
-  }
-}, /*#__PURE__*/React.createElement("span", null, statusTime), /*#__PURE__*/React.createElement("span", {
-  style: {
-    display: "inline-flex",
-    gap: 6,
-    alignItems: "center"
-  }
-}, /*#__PURE__*/React.createElement("svg", {
-  width: "18",
-  height: "11",
-  viewBox: "0 0 18 11"
-}, /*#__PURE__*/React.createElement("rect", {
-  x: "0",
-  y: "7",
-  width: "3",
-  height: "4",
-  rx: "0.6",
-  fill: "#fff"
-}), /*#__PURE__*/React.createElement("rect", {
-  x: "5",
-  y: "5",
-  width: "3",
-  height: "6",
-  rx: "0.6",
-  fill: "#fff"
-}), /*#__PURE__*/React.createElement("rect", {
-  x: "10",
-  y: "3",
-  width: "3",
-  height: "8",
-  rx: "0.6",
-  fill: "#fff"
-}), /*#__PURE__*/React.createElement("rect", {
-  x: "15",
-  y: "0",
-  width: "3",
-  height: "11",
-  rx: "0.6",
-  fill: "#fff"
-})), /*#__PURE__*/React.createElement("svg", {
-  width: "14",
-  height: "10",
-  viewBox: "0 0 14 10"
-}, /*#__PURE__*/React.createElement("path", {
-  d: "M7 2.7c1.9 0 3.6.8 4.8 2L13 3.5C11.4 2 9.3 1 7 1S2.6 2 1 3.5l1.2 1.2c1.2-1.2 2.9-2 4.8-2zM7 5.7c1.2 0 2.2.4 3 1.1l1.2-1.1C10 4.7 8.6 4 7 4s-3 .7-4.2 1.7L4 6.8c.8-.7 1.8-1.1 3-1.1z",
-  fill: "#fff"
-}), /*#__PURE__*/React.createElement("circle", {
-  cx: "7",
-  cy: "9",
-  r: "1.2",
-  fill: "#fff"
-})), /*#__PURE__*/React.createElement("svg", {
-  width: "26",
-  height: "12",
-  viewBox: "0 0 26 12"
-}, /*#__PURE__*/React.createElement("rect", {
-  x: "0.5",
-  y: "0.5",
-  width: "22",
-  height: "11",
-  rx: "3",
-  stroke: "rgba(255,255,255,0.4)",
-  fill: "none"
-}), /*#__PURE__*/React.createElement("rect", {
-  x: "2",
-  y: "2",
-  width: "19",
-  height: "8",
-  rx: "1.6",
-  fill: "#fff"
-}), /*#__PURE__*/React.createElement("rect", {
-  x: "23.5",
-  y: "4",
-  width: "1.5",
-  height: "4",
-  rx: "0.6",
-  fill: "rgba(255,255,255,0.4)"
-})))), /*#__PURE__*/React.createElement("div", {
-  style: {
-    position: "absolute",
     inset: 0,
     overflow: scrollable ? "auto" : "hidden",
-    paddingTop: 54,
-    paddingBottom: withTabBar ? 110 : 0
+    paddingTop: 0,
+    paddingBottom: withTabBar ? 80 : 0
   }
 }, children), withTabBar && tab && setTab && /*#__PURE__*/React.createElement(TabBar, {
   active: tab,
   onChange: setTab
-}), /*#__PURE__*/React.createElement("div", {
-  style: {
-    position: "absolute",
-    bottom: 8,
-    left: "50%",
-    transform: "translateX(-50%)",
-    width: 134,
-    height: 5,
-    borderRadius: 3,
-    background: "rgba(255,255,255,0.7)",
-    zIndex: 60
-  }
 }));
 
 /* -------- Common UI: button -------- */
