@@ -2162,6 +2162,15 @@ const ScreenMy = ({
     }
   }, "+ \uC774\uBC88 \uC8FC \uCD94\uCC9C 5\uC138\uD2B8 \uBAA8\uB450 \uC800\uC7A5")));
 };
+const SocialBtn = ({ name, bg, color }) => /*#__PURE__*/React.createElement("button", {
+  onClick: () => alert(name + " 로그인은 준비 중입니다."),
+  style: {
+    background: bg, border: "none", borderRadius: 12,
+    padding: "12px 0", cursor: "pointer",
+    color: color, fontFamily: "Pretendard", fontWeight: 800, fontSize: 12, width: "100%"
+  }
+}, name.charAt(0).toUpperCase() + name.slice(1));
+
 const ScreenAuth = ({
   go
 }) => {
