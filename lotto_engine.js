@@ -1261,9 +1261,10 @@
     constructor(draws = []) {
       this.draws = (draws.length > 0 ? draws : SEED_DRAWS)
         .filter(d => Array.isArray(d.nums) && d.nums.length === 6);
-      this.N    = 45;
-      this.PICK = 6;
-      this._cache = {};
+      this.N       = 45;
+      this.PICK    = 6;
+      this.version = 'v2.2';
+      this._cache  = {};
     }
 
     // § 1. 학습 — 통계 지표 계산
